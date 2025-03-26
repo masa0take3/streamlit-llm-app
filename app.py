@@ -1,25 +1,15 @@
-from dotenv import load_dotenv
-import os
 import streamlit as st
-from openai import OpenAI as OpenAIClient  # OpenAI クライアント
 from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 
-# .env ファイルから環境変数を読み込む
-load_dotenv()
-
-# 環境変数を取得する
-openai_api_key = os.getenv("OPENAI_API_KEY")
-print(openai_api_key)  # 必要であればデバッグ用に確認
-
-# OpenAI API キーを設定する
-os.environ["OPENAI_API_KEY"] = openai_api_key
+# Streamlit Secrets から API キーを取得
+openai_api_key = st.secrets["openai"]["api_key"]
 
 # LLMと専門家のプロンプトを定義する関数
 def get_expert_answer(user_input, expert_type):
     # LLMの初期化
-    llm = OpenAI(temperature=0.7, openai_api_key=openai_api_key, max_tokens=500)  # max_tokensを増やす
+    llm = OpenAI(temperature=0.7, openai_api_key=openai_api_key, max_tokens=500)
 
     # 専門家に応じたプロンプトのシステムメッセージ
     if expert_type == 'A：歴史学':
