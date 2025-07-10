@@ -7,7 +7,7 @@ import os
 #load_dotenv()
 
 # Streamlit Secrets から API キーを取得
-openai_api_key = st.secrets["openai"]["api_key"]
+os.environ["OPENAI_API_KEY"] = st.secrets["openai"]["api_key"]
 
 def get_expert_response(user_input, expert_type):
     """LLMからの回答を返す関数"""
