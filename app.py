@@ -1,62 +1,74 @@
 import streamlit as st
-from langchain.llms import OpenAI
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
+import os
+
+from dotenv import load_dotenv
+load_dotenv()
 
 # Streamlit Secrets から API キーを取得
-openai_api_key = st.secrets["openai"]["api_key"]
+#openai_api_key = st.secrets["openai"]["api_key"]
 
-# LLMと専門家のプロンプトを定義する関数
-def get_expert_answer(user_input, expert_type):
-    # LLMの初期化
-    llm = OpenAI(temperature=0.7, openai_api_key=openai_api_key, max_tokens=500)
 
-    # 専門家に応じたプロンプトのシステムメッセージ
-    if expert_type == 'A：歴史学':
-        expert_message = "あなたは歴史学の専門家です。次の質問に答えてください:"
-    elif expert_type == 'B：料理':
-        expert_message = "あなたは料理の専門家です。次の質問に答えてください:"
-    else:
-        expert_message = "あなたは一般的なアシスタントです。次の質問に答えてください:"
-
-    # プロンプトテンプレートを定義
-    prompt = PromptTemplate(input_variables=["user_input"], template=f"{expert_message} {{user_input}}")
-
-    # プロンプトを使ってLLMチェーンを作成
-    chain = LLMChain(llm=llm, prompt=prompt)
-
-    # LLMを使って回答を取得
-    result = chain.run(user_input)
+def get_expert_response(user_input, expert_type):
+    """LLMからの回答を返す関数"""
     
-    return result
+    # 専門家タイプに応じてシステムメッセージを設定
+    if expert_type == 'プログラミング専門家':
+        system_message = "あなたはプログラミングの専門家です。技術的な質問に詳しく答えてください。"
+    else:  # 料理専門家
+        system_message = "あなたは料理の専門家です。料理に関する質問に詳しく答えてください。"
+    
+    try:
+        # ChatOpenAIインスタンスの作成
+        chat = ChatOpenAI(
+            model="gpt-4o-mini",  # モデル名を指定
+            temperature=0.7,
+            max_tokens=500,
+        )
+        
+        # メッセージの作成
+        messages = [
+            SystemMessage(content=system_message),
+            HumanMessage(content=user_input)
+        ]
+        
+        # LLMに送信して回答を取得
+        response = chat(messages)
+        return response.content
+        
+    except Exception as e:
+        return f"エラーが発生しました: {str(e)}"
 
-# Streamlitアプリケーションの構成
-def main():
-    # アプリケーションタイトル
-    st.title("専門家への質問")
+# Streamlitアプリ
+st.title("専門家チャットアプリ")
 
-    # アプリケーションの説明
-    st.write("このWebアプリケーションでは、専門家に質問をすることができます。以下の入力フォームに質問を入力し、専門家を選んで送信してください。")
+st.markdown("""
+## 使い方
+1. 専門家を選択
+2. 質問を入力
+3. 「回答を取得」ボタンをクリック
+""")
 
-    # ユーザーからの入力を取得
-    user_input = st.text_input("質問内容を入力してください:")
+# 専門家選択
+expert_type = st.radio(
+    "専門家を選択してください:",
+    ["プログラミング専門家", "料理専門家"]
+)
 
-    # 専門家の選択肢を提供
-    expert_type = st.radio(
-        "専門家を選んでください",
-        ('A：歴史学', 'B：料理'),
-        index=0
-    )
+# 質問入力
+user_input = st.text_area(
+    "質問を入力してください:",
+    height=100,
+    placeholder="例: Pythonのリスト操作について教えて"
+)
 
-    # 質問が送信されたときの処理
-    if st.button('質問を送信'):
-        if user_input:
-            # 入力された内容と選択された専門家に基づいてLLMから回答を取得
-            answer = get_expert_answer(user_input, expert_type)
-            st.write("### 回答:")
-            st.write(answer)
-        else:
-            st.error("質問を入力してください。")
-
-if __name__ == "__main__":
-    main()
+# 回答取得ボタン
+if st.button("回答を取得"):
+    if user_input.strip():
+        with st.spinner("回答を生成中..."):
+            response = get_expert_response(user_input, expert_type)
+            st.subheader(f"{expert_type}の回答:")
+            st.write(response)
+    else:
+        st.warning("質問を入力してください。")
